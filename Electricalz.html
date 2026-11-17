@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Classy Customizable Electric Clock Wallpaper</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600&family=Cormorant+Garamond:wght@300;400&display=swap');
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      overflow: hidden;
+      user-select: none;
+    }
+
+    body, html {
+      width: 100%;
+      height: 100%;
+      background: #080b12;
+      font-family: 'Cinzel', serif;
+    }
+
+    canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      z-index: 1;
+    }
+
+    /* Central Clock Container */
+    .clock-container {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 2;
+      text-align: center;
+      pointer-events: none;
+    }
+
+    .time {
+      font-size: 5rem;
+      font-weight: 400;
+      color: #f1f5f9;
+      letter-spacing: 8px;
+      text-shadow: 0 4px 20px rgba(186, 230, 253, 0.15);
+    }
+
+    .date {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 1.6rem;
+      font-weight: 300;
+      font-style: italic;
+      color: #94a3b8;
+      letter-spacing: 4px;
+      text-transform: uppercase;
+      margin-top: 5px;
+      opacity: 0.85;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="clock-container">
+    <div class="time" id="time">00:00:00</div>
+    <div class="date" id="date">LOADING...</div>
+  </div>
+
+  <canvas id="canvas"></canvas>
+
+  <script>
+    // --- Customizable Config Variables ---
+    let config = {
+      brightnessMultiplier: 0.5, // Default 50%
+      particleCount: 85,
+      is12Hour: false
+    };
+
+    // --- Lively Properties Listener ---
+    function livelyPropertyListener(name, val) {
+      switch (name) {
+        case "effectBrightness":
+          config.brightnessMultiplier = val / 100;
+          break;
+        case "particleAmount":
+          config.particleCount = val;
+          adjustParticleCount();
+          break;
+        case "timeFormat":
+          config.is12Hour = (val === 1);
+          updateClock();
+          break;
+      }
+    }
+
+    // --- Clock Logic ---
+    function updateClock() {
+      const now = new Date();
+      let hoursNum = now.getHours();
+      let ampm = "";
+
+      if (config.is12Hour) {
+        ampm = hoursNum >= 12 ? " PM" : " AM";
+        hoursNum = hoursNum % 12 || 12;
+      }
+
+      const hours = String(hoursNum).padStart(2, '0');
+      const minutes = String(now.getMinutes()).padStart(2, '0');
+      const seconds = String(now.getSeconds()).padStart(2, '0');
+      
+      document.getElementById('time').textContent = `${hours}:${minutes}:${seconds}${ampm}`;
+
+      const options = { weekday: 'long', month: 'short', day: 'numeric', year: 'numeric' };
+      document.getElementById('date').textContent = now.toLocaleDateString(undefined, options);
+    }
+
+    function startSyncedClock() {
+      updateClock();
+      const now = new Date();
+      const delay = 1000 - now.getMilliseconds();
+      
+      setTimeout(() => {
+        updateClock();
+        setInterval(updateClock, 1000);
+      }, delay);
+    }
+
+    document.addEventListener("visibilitychange", () => {
+      if (!document.hidden) updateClock();
+    });
+
+    startSyncedClock();
+
+    // --- Canvas Logic ---
+    const canvas = document.getElementById("canvas");
+    const ctx = canvas.getContext("2d");
+
+    let width = (canvas.width = window.innerWidth);
+    let height = (canvas.height = window.innerHeight);
+
+    window.addEventListener("resize", () => {
+      width = canvas.width = window.innerWidth;
+      height = canvas.height = window.innerHeight;
+    });
+
+    const mouse = { x: width / 2, y: height / 2, active: false };
+
+    window.addEventListener("pointermove", (e) => {
+      mouse.x = e.clientX;
+      mouse.y = e.clientY;
+      mouse.active = true;
+    });
+
+    class Particle {
+      constructor() {
+        this.x = Math.random() * width;
+        this.y = Math.random() * height;
+        this.vx = (Math.random() - 0.5) * 1.5;
+        this.vy = (Math.random() - 0.5) * 1.5;
+        this.radius = Math.random() * 1.5 + 0.8;
+      }
+
+      update() {
+        this.x += this.vx;
+        this.y += this.vy;
+
+        if (this.x < 0 || this.x > width) this.vx *= -1;
+        if (this.y < 0 || this.y > height) this.vy *= -1;
+      }
+
+      draw() {
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(186, 230, 253, ${0.6 * config.brightnessMultiplier})`;
+        ctx.fill();
+      }
+    }
+
+    let particles = Array.from({ length: config.particleCount }, () => new Particle());
+
+    function adjustParticleCount() {
+      while (particles.length < config.particleCount) {
+        particles.push(new Particle());
+      }
+      if (particles.length > config.particleCount) {
+        particles.length = config.particleCount;
+      }
+    }
+
+    function drawElectricArc(x1, y1, x2, y2, opacity, isMouseArc = false) {
+      const distance = Math.hypot(x2 - x1, y2 - y1);
+      const stepSize = isMouseArc ? 12 : 20;
+      const steps = Math.floor(distance / stepSize);
+      
+      ctx.beginPath();
+      ctx.moveTo(x1, y1);
+
+      let currentX = x1;
+      let currentY = y1;
+
+      for (let i = 1; i < steps; i++) {
+        const targetX = x1 + ((x2 - x1) / steps) * i;
+        const targetY = y1 + ((y2 - y1) / steps) * i;
+
+        const jitter = (Math.random() - 0.5) * (isMouseArc ? 6 : 4);
+        currentX = targetX + jitter;
+        currentY = targetY + jitter;
+
+        ctx.lineTo(currentX, currentY);
+      }
+
+      ctx.lineTo(x2, y2);
+      
+      const baseAlpha = opacity * (isMouseArc ? 0.35 : 0.25) * config.brightnessMultiplier;
+      ctx.strokeStyle = `rgba(186, 230, 253, ${baseAlpha})`;
+      ctx.lineWidth = isMouseArc ? 0.8 : 0.6;
+      ctx.stroke();
+    }
+
+    function animate() {
+      ctx.fillStyle = "rgba(8, 11, 18, 1)";
+      ctx.fillRect(0, 0, width, height);
+
+      for (let i = 0; i < particles.length; i++) {
+        particles[i].update();
+        particles[i].draw();
+
+        for (let j = i + 1; j < particles.length; j++) {
+          const dx = particles[i].x - particles[j].x;
+          const dy = particles[i].y - particles[j].y;
+          const dist = Math.hypot(dx, dy);
+
+          if (dist < 110) {
+            drawElectricArc(particles[i].x, particles[i].y, particles[j].x, particles[j].y, (1 - dist / 110));
+          }
+        }
+
+        if (mouse.active) {
+          const mouseDist = Math.hypot(mouse.x - particles[i].x, mouse.y - particles[i].y);
+          if (mouseDist < 240) {
+            drawElectricArc(particles[i].x, particles[i].y, mouse.x, mouse.y, (1 - mouseDist / 240), true);
+          }
+        }
+      }
+
+      requestAnimationFrame(animate);
+    }
+
+    animate();
+  </script>
+</body>
+</html>

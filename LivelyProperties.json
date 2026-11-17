@@ -1,0 +1,27 @@
+{
+  "effectBrightness": {
+    "type": "slider",
+    "text": "Electric Effect Brightness",
+    "min": 10,
+    "max": 100,
+    "step": 5,
+    "value": 50
+  },
+  "particleAmount": {
+    "type": "slider",
+    "text": "Amount of Particles",
+    "min": 20,
+    "max": 180,
+    "step": 5,
+    "value": 85
+  },
+  "timeFormat": {
+    "type": "dropdown",
+    "text": "Clock Time Format",
+    "value": 0,
+    "items": [
+      "24-Hour (13:00)",
+      "12-Hour (01:00 PM)"
+    ]
+  }
+}
